@@ -93,7 +93,11 @@
             <!-- Content Management -->
             <div class="glass rounded-xl p-8 mb-6">
                 <h2 class="text-xl font-bold text-white mb-6">Quick Actions</h2>
-                <div class="grid md:grid-cols-3 gap-4">
+                <div class="grid md:grid-cols-4 gap-4">
+                    <button onclick="showSection('upload')"
+                        class="p-4 bg-orange-600 hover:bg-orange-700 rounded-lg text-white font-medium transition-colors">
+                        📤 Upload eBook
+                    </button>
                     <button onclick="showSection('pricing')"
                         class="p-4 bg-emerald-600 hover:bg-emerald-700 rounded-lg text-white font-medium transition-colors">
                         💰 Update Pricing
@@ -106,6 +110,145 @@
                         class="p-4 bg-purple-600 hover:bg-purple-700 rounded-lg text-white font-medium transition-colors">
                         👥 View Members
                     </button>
+                </div>
+            </div>
+
+            <!-- eBook Upload Section -->
+            <div id="upload-section" class="glass rounded-xl p-8 hidden">
+                <h2 class="text-xl font-bold text-white mb-6">📚 Upload New eBook</h2>
+                <form id="ebook-upload-form" class="space-y-6 max-w-3xl">
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-gray-300 text-sm font-medium mb-2">Book Title *</label>
+                            <input type="text" id="book-title" required
+                                class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                placeholder="e.g., Atomic Habits">
+                        </div>
+                        <div>
+                            <label class="block text-gray-300 text-sm font-medium mb-2">Author *</label>
+                            <input type="text" id="book-author" required
+                                class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                placeholder="e.g., James Clear">
+                        </div>
+                    </div>
+
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-gray-300 text-sm font-medium mb-2">Category</label>
+                            <select id="book-category"
+                                class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-orange-500">
+                                <option value="self-improvement">Self-Improvement</option>
+                                <option value="business">Business</option>
+                                <option value="productivity">Productivity</option>
+                                <option value="fiction">Fiction</option>
+                                <option value="technology">Technology</option>
+                                <option value="health">Health & Wellness</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-gray-300 text-sm font-medium mb-2">Price (USD) *</label>
+                            <input type="number" id="book-price" required min="0" step="0.01" value="9.99"
+                                class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                placeholder="9.99">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-gray-300 text-sm font-medium mb-2">Description</label>
+                        <textarea id="book-description" rows="3"
+                            class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                            placeholder="Brief description of the book..."></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-gray-300 text-sm font-medium mb-4">Upload eBook File (PDF/EPUB)
+                            *</label>
+                        <div
+                            class="border-2 border-dashed border-white/20 rounded-lg p-8 text-center hover:border-orange-500 transition-colors">
+                            <input type="file" id="ebook-file" accept=".pdf,.epub" required class="hidden"
+                                onchange="handleFileSelect(event)">
+                            <label for="ebook-file" class="cursor-pointer">
+                                <div class="text-4xl mb-3">📄</div>
+                                <div class="text-white font-medium mb-1">Click to upload or drag and drop</div>
+                                <div class="text-gray-400 text-sm">PDF or EPUB (max 50MB)</div>
+                                <div id="file-name" class="text-orange-400 text-sm mt-2 hidden"></div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-gray-300 text-sm font-medium mb-4">Cover Image (Optional)</label>
+                        <div
+                            class="border-2 border-dashed border-white/20 rounded-lg p-6 text-center hover:border-orange-500 transition-colors">
+                            <input type="file" id="cover-image" accept="image/*" class="hidden"
+                                onchange="handleCoverSelect(event)">
+                            <label for="cover-image" class="cursor-pointer">
+                                <div class="text-3xl mb-2">🖼️</div>
+                                <div class="text-white text-sm mb-1">Upload book cover</div>
+                                <div class="text-gray-400 text-xs">JPG, PNG (max 5MB)</div>
+                                <div id="cover-preview" class="mt-3 hidden">
+                                    <img id="cover-img" class="mx-auto rounded-lg max-h-32">
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4">
+                        <button type="submit"
+                            class="bg-orange-600 hover:bg-orange-700 text-white px-8 py-3 rounded-lg font-medium transition-colors">
+                            📤 Upload & Publish
+                        </button>
+                        <button type="button" onclick="resetUploadForm()"
+                            class="bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                            Reset
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Uploaded Books List -->
+                <div class="mt-12">
+                    <h3 class="text-lg font-bold text-white mb-4">📚 Your eBook Library</h3>
+                    <div id="ebook-library" class="space-y-3">
+                        <!-- Sample books -->
+                        <div class="bg-white/5 p-4 rounded-lg flex items-center justify-between">
+                            <div class="flex items-center gap-4">
+                                <div
+                                    class="w-12 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded flex items-center justify-center text-2xl">
+                                    📖
+                                </div>
+                                <div>
+                                    <h4 class="text-white font-medium">Atomic Habits</h4>
+                                    <p class="text-gray-400 text-sm">James Clear • Self-Improvement • $12.99</p>
+                                    <p class="text-emerald-400 text-xs mt-1">✅ Published • 234 sales</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button
+                                    class="text-blue-400 hover:text-blue-300 text-sm px-3 py-1 bg-blue-500/10 rounded">Edit</button>
+                                <button
+                                    class="text-red-400 hover:text-red-300 text-sm px-3 py-1 bg-red-500/10 rounded">Delete</button>
+                            </div>
+                        </div>
+                        <div class="bg-white/5 p-4 rounded-lg flex items-center justify-between">
+                            <div class="flex items-center gap-4">
+                                <div
+                                    class="w-12 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded flex items-center justify-center text-2xl">
+                                    📘
+                                </div>
+                                <div>
+                                    <h4 class="text-white font-medium">Deep Work</h4>
+                                    <p class="text-gray-400 text-sm">Cal Newport • Productivity • $14.99</p>
+                                    <p class="text-emerald-400 text-xs mt-1">✅ Published • 187 sales</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button
+                                    class="text-blue-400 hover:text-blue-300 text-sm px-3 py-1 bg-blue-500/10 rounded">Edit</button>
+                                <button
+                                    class="text-red-400 hover:text-red-300 text-sm px-3 py-1 bg-red-500/10 rounded">Delete</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
