@@ -375,6 +375,7 @@
 
         function showSection(section) {
             // Hide all sections
+            document.getElementById('upload-section').classList.add('hidden');
             document.getElementById('pricing-section').classList.add('hidden');
             document.getElementById('featured-section').classList.add('hidden');
             document.getElementById('members-section').classList.add('hidden');
@@ -386,6 +387,61 @@
         function savePricing() {
             alert('✅ Pricing updated successfully!\n\nNote: This is a demo. In production, this would update your database and regenerate the main site.');
         }
+
+        // eBook Upload Functions
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            const fileNameDiv = document.getElementById('file-name');
+
+            if (file) {
+                const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                fileNameDiv.textContent = `📄 ${file.name} (${sizeMB} MB)`;
+                fileNameDiv.classList.remove('hidden');
+            }
+        }
+
+        function handleCoverSelect(event) {
+            const file = event.target.files[0];
+            const preview = document.getElementById('cover-preview');
+            const img = document.getElementById('cover-img');
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    img.src = e.target.result;
+                    preview.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function resetUploadForm() {
+            document.getElementById('ebook-upload-form').reset();
+            document.getElementById('file-name').classList.add('hidden');
+            document.getElementById('cover-preview').classList.add('hidden');
+        }
+
+        // Handle eBook upload form submission
+        document.addEventListener('DOMContentLoaded', function () {
+            const uploadForm = document.getElementById('ebook-upload-form');
+            if (uploadForm) {
+                uploadForm.addEventListener('submit', function (e) {
+                    e.preventDefault();
+
+                    const title = document.getElementById('book-title').value;
+                    const author = document.getElementById('book-author').value;
+                    const category = document.getElementById('book-category').value;
+                    const price = document.getElementById('book-price').value;
+                    const description = document.getElementById('book-description').value;
+                    const file = document.getElementById('ebook-file').files[0];
+
+                    // Simulate upload (in production, this would upload to Firebase Storage)
+                    alert(`✅ eBook Uploaded Successfully!\n\n📚 ${title}\n👤 ${author}\n💰 $${price}\n📁 ${category}\n\n🎉 Your book is now available for sale!\n\nNote: In production, this would:\n1. Upload the file to cloud storage\n2. Create a database entry\n3. Generate a purchase page\n4. Add to your storefront`);
+
+                    resetUploadForm();
+                });
+            }
+        });
     </script>
 
 </body>
