@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Incarbooks Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&family=Inter:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+
+<body class="antialiased">
+
+    <!-- Login Screen -->
+    <div id="login-screen" class="min-h-screen flex items-center justify-center p-4">
+        <div class="glass rounded-2xl p-8 w-full max-w-md shadow-2xl">
+            <div class="text-center mb-8">
+                <span class="text-4xl mb-4 block">🔐</span>
+                <h1 class="text-2xl font-bold text-white mb-2">Admin Access</h1>
+                <p class="text-gray-400 text-sm">Incarbooks Management Portal</p>
+            </div>
+
+            <form id="login-form" class="space-y-4">
+                <div>
+                    <label class="block text-gray-300 text-sm font-medium mb-2">Password</label>
+                    <input type="password" id="admin-password"
+                        class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        placeholder="Enter admin password" required>
+                </div>
+                <button type="submit"
+                    class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-lg transition-colors">
+                    Login
+                </button>
+                <p id="login-error" class="text-red-400 text-sm text-center hidden">Incorrect password</p>
+            </form>
+
+            <p class="text-gray-500 text-xs text-center mt-6">
+                Default password: <code class="bg-white/10 px-2 py-1 rounded">admin123</code>
+            </p>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard -->
+    <div id="admin-dashboard" class="hidden min-h-screen p-6">
+        <div class="max-w-7xl mx-auto">
+            <!-- Header -->
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h1 class="text-3xl font-bold text-white mb-2">📚 Incarbooks Admin</h1>
+                    <p class="text-gray-400">Manage your digital library</p>
+                </div>
+                <button onclick="logout()"
+                    class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors">
+                    Logout
+                </button>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="grid md:grid-cols-4 gap-6 mb-8">
+                <div class="glass rounded-xl p-6">
+                    <div class="text-emerald-400 text-sm font-medium mb-1">Total Books</div>
+                    <div class="text-3xl font-bold text-white">5,247</div>
+                </div>
+                <div class="glass rounded-xl p-6">
+                    <div class="text-blue-400 text-sm font-medium mb-1">Active Members</div>
+                    <div class="text-3xl font-bold text-white">1,832</div>
+                </div>
+                <div class="glass rounded-xl p-6">
+                    <div class="text-purple-400 text-sm font-medium mb-1">Revenue (Month)</div>
+                    <div class="text-3xl font-bold text-white">$18,340</div>
+                </div>
+                <div class="glass rounded-xl p-6">
+                    <div class="text-yellow-400 text-sm font-medium mb-1">New This Week</div>
+                    <div class="text-3xl font-bold text-white">47</div>
+                </div>
+            </div>
+
+            <!-- Content Management -->
+            <div class="glass rounded-xl p-8 mb-6">
+                <h2 class="text-xl font-bold text-white mb-6">Quick Actions</h2>
+                <div class="grid md:grid-cols-3 gap-4">
+                    <button onclick="showSection('pricing')"
+                        class="p-4 bg-emerald-600 hover:bg-emerald-700 rounded-lg text-white font-medium transition-colors">
+                        💰 Update Pricing
+                    </button>
+                    <button onclick="showSection('featured')"
+                        class="p-4 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-medium transition-colors">
+                        ⭐ Manage Featured Books
+                    </button>
+                    <button onclick="showSection('members')"
+                        class="p-4 bg-purple-600 hover:bg-purple-700 rounded-lg text-white font-medium transition-colors">
+                        👥 View Members
+                    </button>
+                </div>
+            </div>
+
+            <!-- Pricing Editor -->
+            <div id="pricing-section" class="glass rounded-xl p-8 hidden">
+                <h2 class="text-xl font-bold text-white mb-6">Edit Membership Pricing</h2>
+                <form class="space-y-4 max-w-2xl">
+                    <div>
+                        <label class="block text-gray-300 text-sm font-medium mb-2">Plan Name</label>
+                        <input type="text" value="Pro Membership"
+                            class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-gray-300 text-sm font-medium mb-2">Price (USD)</label>
+                        <input type="number" value="100"
+                            class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-gray-300 text-sm font-medium mb-2">Billing Period</label>
+                        <select
+                            class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            <option value="year">Yearly</option>
+                            <option value="month">Monthly</option>
+                        </select>
+                    </div>
+                    <button type="button" onclick="savePricing()"
+                        class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                        Save Changes
+                    </button>
+                </form>
+            </div>
+
+            <!-- Featured Books Editor -->
+            <div id="featured-section" class="glass rounded-xl p-8 hidden">
+                <h2 class="text-xl font-bold text-white mb-6">Featured Books</h2>
+                <div class="space-y-4">
+                    <div class="bg-white/5 p-4 rounded-lg flex justify-between items-center">
+                        <div>
+                            <h3 class="text-white font-medium">Atomic Habits by James Clear</h3>
+                            <p class="text-gray-400 text-sm">Self-Improvement • 4.8★</p>
+                        </div>
+                        <button class="text-red-400 hover:text-red-300">Remove</button>
+                    </div>
+                    <div class="bg-white/5 p-4 rounded-lg flex justify-between items-center">
+                        <div>
+                            <h3 class="text-white font-medium">Deep Work by Cal Newport</h3>
+                            <p class="text-gray-400 text-sm">Productivity • 4.7★</p>
+                        </div>
+                        <button class="text-red-400 hover:text-red-300">Remove</button>
+                    </div>
+                    <button
+                        class="w-full border-2 border-dashed border-white/20 hover:border-emerald-500 text-gray-400 hover:text-emerald-400 py-4 rounded-lg transition-colors">
+                        + Add New Featured Book
+                    </button>
+                </div>
+            </div>
+
+            <!-- Members List -->
+            <div id="members-section" class="glass rounded-xl p-8 hidden">
+                <h2 class="text-xl font-bold text-white mb-6">Recent Members</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="text-left text-gray-400 text-sm">
+                                <th class="pb-4">Email</th>
+                                <th class="pb-4">Plan</th>
+                                <th class="pb-4">Joined</th>
+                                <th class="pb-4">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-white">
+                            <tr class="border-t border-white/10">
+                                <td class="py-4">john@example.com</td>
+                                <td class="py-4">Pro</td>
+                                <td class="py-4">2026-02-10</td>
+                                <td class="py-4"><span
+                                        class="bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-xs">Active</span>
+                                </td>
+                            </tr>
+                            <tr class="border-t border-white/10">
+                                <td class="py-4">sarah@example.com</td>
+                                <td class="py-4">Pro</td>
+                                <td class="py-4">2026-02-09</td>
+                                <td class="py-4"><span
+                                        class="bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-xs">Active</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Simple password authentication (for demo - use proper auth in production)
+        const ADMIN_PASSWORD = 'admin123'; // Change this!
+
+        document.getElementById('login-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const password = document.getElementById('admin-password').value;
+            const errorMsg = document.getElementById('login-error');
+
+            if (password === ADMIN_PASSWORD) {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('admin-dashboard').classList.remove('hidden');
+                sessionStorage.setItem('adminLoggedIn', 'true');
+            } else {
+                errorMsg.classList.remove('hidden');
+            }
+        });
+
+        // Check if already logged in
+        if (sessionStorage.getItem('adminLoggedIn') === 'true') {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('admin-dashboard').classList.remove('hidden');
+        }
+
+        function logout() {
+            sessionStorage.removeItem('adminLoggedIn');
+            location.reload();
+        }
+
+        function showSection(section) {
+            // Hide all sections
+            document.getElementById('pricing-section').classList.add('hidden');
+            document.getElementById('featured-section').classList.add('hidden');
+            document.getElementById('members-section').classList.add('hidden');
+
+            // Show selected section
+            document.getElementById(section + '-section').classList.remove('hidden');
+        }
+
+        function savePricing() {
+            alert('✅ Pricing updated successfully!\n\nNote: This is a demo. In production, this would update your database and regenerate the main site.');
+        }
+    </script>
+
+</body>
+
+</html>
