@@ -44,7 +44,7 @@ export default function ProductCard({ product }: { product: any }) {
 
                 {/* Info Section */}
                 <div className="p-5 flex flex-col flex-1">
-                    <h3 className="text-base font-bold text-slate-900 mb-1 group-hover:text-emerald-700 transition-colors line-clamp-2 leading-tight">
+                    <h3 className="text-base font-bold text-slate-900 mb-1 group-hover:text-emerald-700 transition-colors line-clamp-2 leading-tight serif">
                         {product.title}
                     </h3>
                     <p className="text-xs text-slate-500 mb-4 font-medium italic">

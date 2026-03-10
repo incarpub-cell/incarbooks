@@ -164,7 +164,7 @@ export default function AdminDashboard() {
         <div className="flex items-center gap-4">
           <div className="bg-emerald-700 text-white w-10 h-10 rounded-xl flex items-center justify-center font-bold">IB</div>
           <div>
-            <h1 className="text-lg font-bold tracking-tight">Curator Dashboard</h1>
+            <h1 className="text-lg font-bold tracking-tight serif">Curator Dashboard</h1>
             <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest">Master Administrator</p>
           </div>
         </div>
@@ -184,7 +184,7 @@ export default function AdminDashboard() {
         <div className="lg:col-span-5 space-y-8">
           <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+            <h2 className="text-xl font-bold mb-6 flex items-center gap-2 serif">
               <span className="text-emerald-700">✍️</span> New Manuscript
             </h2>
 
@@ -254,7 +254,7 @@ export default function AdminDashboard() {
         <div className="lg:col-span-7 space-y-8">
           <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden min-h-[600px]">
             <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <h2 className="text-xl font-bold flex items-center gap-2">
+              <h2 className="text-xl font-bold flex items-center gap-2 serif">
                 <span className="text-emerald-700">📚</span> Active Library
               </h2>
               <span className="bg-emerald-100 text-emerald-700 text-[10px] px-3 py-1 rounded-full font-bold uppercase tracking-widest">{products.length} Units</span>

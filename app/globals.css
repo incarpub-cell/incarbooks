@@ -1,13 +1,10 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 @layer base {
   :root {
     --background: 160 30% 98%;
     --foreground: 160 50% 5%;
     --primary: 161 94% 20%;
-    /* Emerald Green #064e3b */
     --primary-foreground: 0 0% 100%;
     --accent: 161 94% 40%;
     --muted: 160 20% 95%;
@@ -17,18 +14,16 @@
 
 body {
   font-family: var(--font-inter), sans-serif;
-  color: #0f172a;
-  background-color: #f8fafc;
-  background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
-  background-size: 24px 24px;
+  color: #1E293B;
+  background-color: #F3F8F5;
 }
 
 h1,
 h2,
 h3,
 h4,
-.font-serif {
-  font-family: var(--font-playfair), serif;
+.serif {
+  font-family: var(--font-merriweather), serif;
 }
 
 @layer utilities {
@@ -36,24 +31,11 @@ h4,
     text-wrap: balance;
   }
 
-  .dot-pattern {
-    background-image: radial-gradient(#065f46 0.8px, transparent 0.8px);
-    background-size: 20px 20px;
-    opacity: 0.1;
+  .hero-pattern {
+    background-color: #ECFDF5;
+    background-image: radial-gradient(#A7F3D0 1px, transparent 1px);
+    background-size: 24px 24px;
   }
-
-  .perspective-1000 {
-    perspective: 1000px;
-  }
-}
-
-/* Premium Emerald Styles */
-.emerald-gradient {
-  background: linear-gradient(135deg, #065f46 0%, #064e3b 100%);
-}
-
-.emerald-text {
-  color: #059669;
 }
 
 /* Custom Scrollbar */
@@ -66,22 +48,10 @@ h4,
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #065f46;
+  background: #059669;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: #047857;
-}
-
-/* Hero Section specific styles */
-.hero-glow {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 600px;
-  height: 600px;
-  background: radial-gradient(circle, rgba(16, 185, 129, 0.05) 0%, transparent 70%);
-  pointer-events: none;
 }

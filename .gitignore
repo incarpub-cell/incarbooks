@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# temp/logs
+*.log
+netlify_source*
+original_page*
+original_store_page*
+작업내용_정리*
+*.tmp
