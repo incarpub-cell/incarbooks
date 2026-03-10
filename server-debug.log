@@ -1,0 +1,38 @@
+2026-03-09T15:34:55.306Z - Server started on http://localhost:8888
+2026-03-09T15:36:08.967Z - Server started on http://127.0.0.1:8888
+2026-03-09T15:36:53.063Z - POST /api/orders
+2026-03-09T15:36:53.065Z - Creating order for: [{"id":"86XSblw43RM4EP1TcwxU","price":9.99}]
+2026-03-09T15:36:53.069Z - Requesting PayPal Access Token...
+2026-03-09T15:36:53.993Z - PayPal Auth Error (401): {"error":"invalid_client","error_description":"Client Authentication failed"}
+2026-03-09T15:36:53.994Z - Order Error: PAYPAL_AUTH_FAILED
+2026-03-09T15:43:34.747Z - POST /api/orders
+2026-03-09T15:43:34.750Z - Creating order for: [{"id":"86XSblw43RM4EP1TcwxU","price":9.99}]
+2026-03-09T15:43:34.751Z - Requesting PayPal Access Token...
+2026-03-09T15:43:35.463Z - PayPal Auth Error (401): {"error":"invalid_client","error_description":"Client Authentication failed"}
+2026-03-09T15:43:35.464Z - Order Error: PAYPAL_AUTH_FAILED
+2026-03-09T15:44:22.596Z - Server started on http://127.0.0.1:8888
+2026-03-09T15:46:32.964Z - Server started on http://127.0.0.1:8888
+2026-03-09T15:51:29.555Z - POST /api/orders
+2026-03-09T15:51:29.557Z - Creating order for: [{"id":"86XSblw43RM4EP1TcwxU","price":9.99}]
+2026-03-09T15:51:29.558Z - Verifying creds - ID: AWN_FgHA..., Secret: EIR7tYT4...
+2026-03-09T15:51:29.559Z - Requesting PayPal Access Token...
+2026-03-09T15:51:30.297Z - Access Token obtained.
+2026-03-09T15:51:31.055Z - Order created: 89C95818LE658721M
+2026-03-09T15:51:56.626Z - POST /api/orders
+2026-03-09T15:51:56.627Z - Creating order for: [{"id":"86XSblw43RM4EP1TcwxU","price":9.99}]
+2026-03-09T15:51:56.629Z - Verifying creds - ID: AWN_FgHA..., Secret: EIR7tYT4...
+2026-03-09T15:51:56.630Z - Requesting PayPal Access Token...
+2026-03-09T15:51:57.268Z - Access Token obtained.
+2026-03-09T15:51:58.115Z - Order created: 03D72701FH856752M
+2026-03-09T15:52:17.299Z - POST /api/orders
+2026-03-09T15:52:17.301Z - Creating order for: [{"id":"86XSblw43RM4EP1TcwxU","price":9.99}]
+2026-03-09T15:52:17.302Z - Verifying creds - ID: AWN_FgHA..., Secret: EIR7tYT4...
+2026-03-09T15:52:17.302Z - Requesting PayPal Access Token...
+2026-03-09T15:52:17.946Z - Access Token obtained.
+2026-03-09T15:52:18.707Z - Order created: 9B89199561324031F
+2026-03-09T15:59:21.853Z - POST /api/orders/9B89199561324031F/capture
+2026-03-09T15:59:21.854Z - Capturing order: 9B89199561324031F
+2026-03-09T15:59:21.855Z - Verifying creds - ID: AWN_FgHA..., Secret: EIR7tYT4...
+2026-03-09T15:59:21.855Z - Requesting PayPal Access Token...
+2026-03-09T15:59:22.730Z - Access Token obtained.
+2026-03-09T15:59:24.120Z - Capture result: COMPLETED
