@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
 import {
   collection,
   addDoc,
@@ -10,12 +10,22 @@ import {
   query,
   orderBy,
   deleteDoc,
+  updateDoc,
   doc
 } from 'firebase/firestore';
+import {
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  User
+} from 'firebase/auth';
 
 export default function AdminDashboard() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -28,31 +38,65 @@ export default function AdminDashboard() {
   const [category, setCategory] = useState('Literature');
   const [coverBase64, setCoverBase64] = useState('');
   const [fileUrl, setFileUrl] = useState('');
+  const [coverFileName, setCoverFileName] = useState('');
+  const [ebookFileName, setEbookFileName] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
 
-  const ADMIN_PASSWORD = 'admin123';
+  // Extended Details
+  const [promoImageBase64, setPromoImageBase64] = useState('');
+  const [promoFileName, setPromoFileName] = useState('');
+  const [authorIntro, setAuthorIntro] = useState('');
+  const [publisher, setPublisher] = useState('');
+  const [publishDate, setPublishDate] = useState('');
+  const [language, setLanguage] = useState('English');
+  const [fileFormat, setFileFormat] = useState('PDF');
+  const [isbn, setIsbn] = useState('');
 
+  // Firebase Auth state listener
   useEffect(() => {
-    if (typeof window !== 'undefined' && sessionStorage.getItem('adminAuth') === 'true') {
-      setIsLoggedIn(true);
-      fetchProducts();
+    if (!auth) {
+      setAuthLoading(false);
+      return;
     }
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
+      setAuthLoading(false);
+      if (firebaseUser) {
+        fetchProducts();
+      }
+    });
+    return () => unsubscribe();
   }, []);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === ADMIN_PASSWORD) {
-      setIsLoggedIn(true);
-      sessionStorage.setItem('adminAuth', 'true');
-      fetchProducts();
-    } else {
-      alert('Security violation: Incorrect token.');
+    if (!auth) return;
+    setLoginError('');
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (err: any) {
+      if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
+        setLoginError('Incorrect email or password.');
+      } else {
+        setLoginError('Login failed. Please try again.');
+      }
     }
   };
 
+  const handleLogout = async () => {
+    if (!auth) return;
+    await signOut(auth);
+    setProducts([]);
+  };
+
   const fetchProducts = async () => {
+    if (!db) {
+      console.error("Firestore database is not initialized.");
+      return;
+    }
     setLoading(true);
     try {
-      const q = query(collection(db, "products"), orderBy("createdAt", "desc"));
+      const q = query(collection(db!, "products"), orderBy("createdAt", "desc"));
       const querySnapshot = await getDocs(q);
       const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setProducts(data);
@@ -66,6 +110,7 @@ export default function AdminDashboard() {
   const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setCoverFileName(file.name);
       const reader = new FileReader();
       reader.onload = (event) => {
         const img = new Image();
@@ -85,21 +130,84 @@ export default function AdminDashboard() {
     }
   };
 
+  const handlePromoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPromoFileName(file.name);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1200;
+          const scale = MAX_WIDTH / img.width;
+          canvas.width = MAX_WIDTH;
+          canvas.height = img.height * scale;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+          setPromoImageBase64(canvas.toDataURL('image/jpeg', 0.8));
+        };
+        img.src = event.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleEbookUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setEbookFileName(file.name);
+      setFileUrl("https://incarbooks-cdn.com/manuscripts/master-demo.pdf");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!db) {
+      alert('Error: Database connection lost.');
+      return;
+    }
     setUploading(true);
     try {
-      await addDoc(collection(db, "products"), {
-        title,
-        author,
-        price: parseFloat(price),
-        description,
-        category,
-        coverUrl: coverBase64,
-        fileUrl: fileUrl || "https://incarbooks-cdn.com/manuscripts/master-demo.pdf",
-        createdAt: serverTimestamp()
-      });
-      alert('✅ Digital manuscript successfully archived.');
+      if (editingId) {
+        await updateDoc(doc(db!, "products", editingId), {
+          title,
+          author,
+          price: parseFloat(price),
+          description,
+          category,
+          coverUrl: coverBase64,
+          fileUrl: fileUrl || "https://incarbooks-cdn.com/manuscripts/master-demo.pdf",
+          promoImageUrl: promoImageBase64,
+          authorIntro,
+          publisher,
+          publishDate,
+          language,
+          fileFormat,
+          isbn,
+          updatedAt: serverTimestamp()
+        });
+        alert('✅ Archive updated successfully.');
+      } else {
+        await addDoc(collection(db!, "products"), {
+          title,
+          author,
+          price: parseFloat(price),
+          description,
+          category,
+          coverUrl: coverBase64,
+          fileUrl: fileUrl || "https://incarbooks-cdn.com/manuscripts/master-demo.pdf",
+          promoImageUrl: promoImageBase64,
+          authorIntro,
+          publisher,
+          publishDate,
+          language,
+          fileFormat,
+          isbn,
+          createdAt: serverTimestamp()
+        });
+        alert('✅ Digital manuscript successfully archived.');
+      }
       resetForm();
       fetchProducts();
     } catch (err) {
@@ -110,6 +218,30 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleEdit = (product: any) => {
+    setEditingId(product.id);
+    setTitle(product.title);
+    setAuthor(product.author);
+    setPrice(product.price ? product.price.toString() : '0');
+    setDescription(product.description || '');
+    setCategory(product.category || 'Literature');
+    setCoverBase64(product.coverUrl || '');
+    setFileUrl(product.fileUrl || '');
+    setCoverFileName(product.coverUrl ? 'Existing Cover Retained' : '');
+    setEbookFileName(product.fileUrl ? 'Existing E-book Retained' : '');
+
+    setPromoImageBase64(product.promoImageUrl || '');
+    setPromoFileName(product.promoImageUrl ? 'Existing Promo Retained' : '');
+    setAuthorIntro(product.authorIntro || '');
+    setPublisher(product.publisher || '');
+    setPublishDate(product.publishDate || '');
+    setLanguage(product.language || 'English');
+    setFileFormat(product.fileFormat || 'PDF');
+    setIsbn(product.isbn || '');
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const resetForm = () => {
     setTitle('');
     setAuthor('');
@@ -117,12 +249,24 @@ export default function AdminDashboard() {
     setDescription('');
     setCoverBase64('');
     setFileUrl('');
+    setCoverFileName('');
+    setEbookFileName('');
+    setPromoImageBase64('');
+    setPromoFileName('');
+    setAuthorIntro('');
+    setPublisher('');
+    setPublishDate('');
+    setLanguage('English');
+    setFileFormat('PDF');
+    setIsbn('');
+    setEditingId(null);
   };
 
   const handleDelete = async (id: string) => {
+    if (!db) return;
     if (confirm('Permanently delete this archive?')) {
       try {
-        await deleteDoc(doc(db, "products", id));
+        await deleteDoc(doc(db!, "products", id));
         fetchProducts();
       } catch (err) {
         console.error(err);
@@ -130,7 +274,17 @@ export default function AdminDashboard() {
     }
   };
 
-  if (!isLoggedIn) {
+  // Loading auth state
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-4 border-emerald-100 border-t-emerald-700"></div>
+      </div>
+    );
+  }
+
+  // Login Page
+  if (!user) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
         <div className="bg-white p-12 rounded-3xl shadow-2xl border border-slate-100 w-full max-w-lg text-center">
@@ -139,15 +293,30 @@ export default function AdminDashboard() {
           <p className="text-slate-400 text-xs font-bold uppercase tracking-[0.2em] mb-12">Internal Access Only</p>
           <form onSubmit={handleLogin} className="space-y-6 text-left max-w-xs mx-auto">
             <div>
-              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2 block">Security Token</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2 block">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-emerald-500 transition-all"
+                placeholder="admin@incarbooks.com"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2 block">Password</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                required
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-emerald-500 transition-all"
                 placeholder="••••••••"
               />
             </div>
+            {loginError && (
+              <p className="text-red-500 text-xs font-bold text-center">{loginError}</p>
+            )}
             <button className="w-full bg-emerald-700 text-white py-4 rounded-xl font-bold hover:bg-emerald-800 transition-all shadow-lg shadow-emerald-700/20">
               Access Dashboard
             </button>
@@ -165,14 +334,11 @@ export default function AdminDashboard() {
           <div className="bg-emerald-700 text-white w-10 h-10 rounded-xl flex items-center justify-center font-bold">IB</div>
           <div>
             <h1 className="text-lg font-bold tracking-tight serif">Curator Dashboard</h1>
-            <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest">Master Administrator</p>
+            <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest">{user.email}</p>
           </div>
         </div>
         <button
-          onClick={() => {
-            sessionStorage.removeItem('adminAuth');
-            setIsLoggedIn(false);
-          }}
+          onClick={handleLogout}
           className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-lg text-xs font-bold hover:bg-slate-50 transition-all"
         >
           Sign Out
@@ -184,9 +350,16 @@ export default function AdminDashboard() {
         <div className="lg:col-span-5 space-y-8">
           <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2 serif">
-              <span className="text-emerald-700">✍️</span> New Manuscript
-            </h2>
+            <div className="flex items-center justify-between mb-6 relative z-10">
+              <h2 className="text-xl font-bold flex items-center gap-2 serif">
+                <span className="text-emerald-700">{editingId ? '✏️' : '✍️'}</span> {editingId ? 'Edit Manuscript' : 'New Manuscript'}
+              </h2>
+              {editingId && (
+                <button type="button" onClick={resetForm} className="text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-red-500 transition-colors">
+                  Cancel Edit
+                </button>
+              )}
+            </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-4">
@@ -228,23 +401,76 @@ export default function AdminDashboard() {
                 <div className="flex gap-4">
                   <div className="flex-1">
                     <input type="file" accept="image/*" onChange={handleCoverUpload} id="cover-form" className="hidden" />
-                    <label htmlFor="cover-form" className="w-full bg-emerald-50 border-2 border-dashed border-emerald-200 py-4 flex flex-col items-center justify-center cursor-pointer hover:bg-emerald-100 transition-all rounded-xl">
+                    <label htmlFor="cover-form" className={`w-full py-4 flex flex-col items-center justify-center cursor-pointer transition-all rounded-xl border-2 border-dashed ${coverFileName ? 'bg-emerald-600 border-emerald-600 hover:bg-emerald-700' : 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100'}`}>
                       <span className="text-xl">🖼️</span>
-                      <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest mt-1">Cover</span>
+                      <span className={`text-[10px] font-bold uppercase tracking-widest mt-1 ${coverFileName ? 'text-emerald-50' : 'text-emerald-700'}`}>{coverFileName ? 'Cover Selected' : 'Cover'}</span>
+                      {coverFileName && <span className="text-[8px] text-emerald-100 mt-1 truncate w-[80%] text-center" title={coverFileName}>{coverFileName}</span>}
                     </label>
                   </div>
                   <div className="flex-1">
-                    <input type="file" accept=".pdf,.epub" onChange={() => setFileUrl("https://incarbooks-cdn.com/manuscripts/master-demo.pdf")} id="file-form" className="hidden" />
-                    <label htmlFor="file-form" className="w-full bg-emerald-50 border-2 border-dashed border-emerald-200 py-4 flex flex-col items-center justify-center cursor-pointer hover:bg-emerald-100 transition-all rounded-xl">
+                    <input type="file" accept=".pdf,.epub" onChange={handleEbookUpload} id="file-form" className="hidden" />
+                    <label htmlFor="file-form" className={`w-full py-4 flex flex-col items-center justify-center cursor-pointer transition-all rounded-xl border-2 border-dashed ${ebookFileName ? 'bg-emerald-600 border-emerald-600 hover:bg-emerald-700' : 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100'}`}>
                       <span className="text-xl">📄</span>
-                      <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest mt-1">E-book</span>
+                      <span className={`text-[10px] font-bold uppercase tracking-widest mt-1 ${ebookFileName ? 'text-emerald-50' : 'text-emerald-700'}`}>{ebookFileName ? 'E-book Selected' : 'E-book'}</span>
+                      {ebookFileName && <span className="text-[8px] text-emerald-100 mt-1 truncate w-[80%] text-center" title={ebookFileName}>{ebookFileName}</span>}
+                    </label>
+                  </div>
+                </div>
+
+                {/* Additional Details Section */}
+                <div className="pt-4 border-t border-slate-100 space-y-4">
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-slate-800">Extended Metadata</h3>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5 block">Publisher</label>
+                      <input value={publisher} onChange={e => setPublisher(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 focus:outline-none focus:border-emerald-500 font-medium text-sm" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5 block">Publish Date</label>
+                      <input type="date" value={publishDate} onChange={e => setPublishDate(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 focus:outline-none focus:border-emerald-500 font-medium text-sm" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5 block">Language</label>
+                      <input value={language} onChange={e => setLanguage(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 focus:outline-none focus:border-emerald-500 font-medium text-sm" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5 block">Format (e.g., PDF)</label>
+                      <input value={fileFormat} onChange={e => setFileFormat(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 focus:outline-none focus:border-emerald-500 font-medium text-sm" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5 block">ISBN</label>
+                      <input value={isbn} onChange={e => setIsbn(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 focus:outline-none focus:border-emerald-500 font-medium text-sm" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5 block">Author Introduction</label>
+                    <textarea rows={2} value={authorIntro} onChange={e => setAuthorIntro(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 focus:outline-none focus:border-emerald-500 text-sm" />
+                  </div>
+
+                  <div>
+                    <input type="file" accept="image/*" onChange={handlePromoUpload} id="promo-form" className="hidden" />
+                    <label htmlFor="promo-form" className={`w-full py-4 flex flex-col items-center justify-center cursor-pointer transition-all rounded-xl border-2 border-dashed ${promoFileName ? 'bg-indigo-600 border-indigo-600 hover:bg-indigo-700' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'}`}>
+                      <span className="text-xl">📸</span>
+                      <span className={`text-[10px] font-bold uppercase tracking-widest mt-1 ${promoFileName ? 'text-indigo-50' : 'text-slate-500'}`}>{promoFileName ? 'Promo Image Selected' : 'Optional Promo Image'}</span>
+                      {promoFileName && <span className="text-[8px] text-indigo-100 mt-1 truncate w-[80%] text-center" title={promoFileName}>{promoFileName}</span>}
                     </label>
                   </div>
                 </div>
               </div>
 
               <button disabled={uploading} className="w-full bg-emerald-700 text-white py-4 rounded-xl font-bold hover:bg-emerald-800 transition-all shadow-lg shadow-emerald-700/20 active:scale-[0.98] disabled:opacity-50">
-                {uploading ? 'Archiving...' : 'Publish to Collection'}
+                {uploading ? 'Processing...' : (editingId ? 'Update Manuscript' : 'Publish to Collection')}
               </button>
             </form>
           </div>
@@ -290,9 +516,14 @@ export default function AdminDashboard() {
                         <td className="p-6 text-xs font-semibold text-slate-600">{item.author}</td>
                         <td className="p-6 text-sm font-black text-slate-900">${item.price}</td>
                         <td className="p-6">
-                          <button onClick={() => handleDelete(item.id)} className="w-10 h-10 bg-white border border-slate-200 text-slate-300 hover:text-red-500 hover:border-red-100 hover:bg-red-50 transition-all rounded-xl flex items-center justify-center">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button onClick={() => handleEdit(item)} className="w-10 h-10 bg-white border border-slate-200 text-slate-400 hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50 transition-all rounded-xl flex items-center justify-center" title="Edit">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                            </button>
+                            <button onClick={() => handleDelete(item.id)} className="w-10 h-10 bg-white border border-slate-200 text-slate-300 hover:text-red-500 hover:border-red-100 hover:bg-red-50 transition-all rounded-xl flex items-center justify-center" title="Delete">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
