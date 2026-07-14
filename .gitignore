@@ -47,3 +47,6 @@ original_page*
 original_store_page*
 작업내용_정리*
 *.tmp
+
+.vercel
+.env*.local

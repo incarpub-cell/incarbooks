@@ -388,6 +388,7 @@ export default function AdminDashboard() {
                       <option>Self-Improvement</option>
                       <option>Technology</option>
                       <option>Philosophy</option>
+                      <option>Christianity</option>
                     </select>
                   </div>
                 </div>

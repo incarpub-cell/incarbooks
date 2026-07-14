@@ -84,7 +84,13 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const q = query(collection(db, "products"), orderBy("createdAt", "desc"));
+    if (!db) {
+      console.warn("Firestore database (db) is not initialized.");
+      setLoading(false);
+      return;
+    }
+
+    const q = query(collection(db!, "products"), orderBy("createdAt", "desc"));
 
     const unsubscribe = onSnapshot(q,
       (snapshot) => {
@@ -266,7 +272,7 @@ export default function Home() {
       <footer className="bg-white border-t border-gray-100 py-12">
         <div className="max-w-7xl mx-auto px-4 text-center text-slate-400 text-sm flex flex-col items-center gap-4">
           <span className="text-2xl grayscale opacity-50">📚</span>
-          <p>&copy; {new Date().getFullYear()} Incarbooks Inc. Empowering minds efficiently.</p>
+          <p>&copy; 2026 Incarbooks Inc. Empowering minds efficiently.</p>
         </div>
       </footer>
     </>

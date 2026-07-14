@@ -9,9 +9,10 @@ interface PayPalCheckoutProps {
 
 export default function PayPalCheckout({ amount, productTitle }: PayPalCheckoutProps) {
     const initialOptions = {
-        clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "test",
+        clientId: (process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "test").replace(/[\r\n"']/g, '').trim(),
         currency: "USD",
         intent: "capture",
+        locale: "en_US",
     };
 
     return (

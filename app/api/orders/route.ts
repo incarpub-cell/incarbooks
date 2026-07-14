@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID!;
-const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET!;
+const PAYPAL_CLIENT_ID = (process.env.PAYPAL_CLIENT_ID || '').replace(/[\r\n"']/g, '').trim();
+const PAYPAL_CLIENT_SECRET = (process.env.PAYPAL_CLIENT_SECRET || '').replace(/[\r\n"']/g, '').trim();
 const PAYPAL_BASE = process.env.PAYPAL_SANDBOX === 'false'
   ? 'https://api-m.paypal.com'
   : 'https://api-m.sandbox.paypal.com';
