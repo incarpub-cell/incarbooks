@@ -41,6 +41,7 @@ export default function AdminDashboard() {
   const [coverFileName, setCoverFileName] = useState('');
   const [ebookFileName, setEbookFileName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [filterCategory, setFilterCategory] = useState('All');
 
   // Extended Details
   const [promoImageBase64, setPromoImageBase64] = useState('');
@@ -326,6 +327,10 @@ export default function AdminDashboard() {
     );
   }
 
+  const filteredProducts = filterCategory === 'All'
+    ? products
+    : products.filter((item: any) => item.category === filterCategory);
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans pb-20">
       {/* Admin Navbar */}
@@ -484,12 +489,26 @@ export default function AdminDashboard() {
               <h2 className="text-xl font-bold flex items-center gap-2 serif">
                 <span className="text-emerald-700">📚</span> Active Library
               </h2>
-              <span className="bg-emerald-100 text-emerald-700 text-[10px] px-3 py-1 rounded-full font-bold uppercase tracking-widest">{products.length} Units</span>
+              <div className="flex items-center gap-3">
+                <select
+                  value={filterCategory}
+                  onChange={e => setFilterCategory(e.target.value)}
+                  className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-[11px] font-bold text-slate-600 focus:outline-none focus:border-emerald-500 shadow-sm"
+                >
+                  <option value="All">All Categories</option>
+                  <option value="Literature">Literature</option>
+                  <option value="Self-Improvement">Self-Improvement</option>
+                  <option value="Technology">Technology</option>
+                  <option value="Philosophy">Philosophy</option>
+                  <option value="Christianity">Christianity</option>
+                </select>
+                <span className="bg-emerald-100 text-emerald-700 text-[10px] px-3 py-1.5 rounded-full font-bold uppercase tracking-widest">{filteredProducts.length} Units</span>
+              </div>
             </div>
 
             {loading ? (
               <div className="p-20 text-center text-slate-300 italic">Authenticating archives...</div>
-            ) : products.length > 0 ? (
+            ) : filteredProducts.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
@@ -497,11 +516,12 @@ export default function AdminDashboard() {
                       <th className="p-6 text-[10px] font-bold uppercase tracking-widest text-slate-400">Work</th>
                       <th className="p-6 text-[10px] font-bold uppercase tracking-widest text-slate-400">Metadata</th>
                       <th className="p-6 text-[10px] font-bold uppercase tracking-widest text-slate-400">Fair Value</th>
+                      <th className="p-6 text-[10px] font-bold uppercase tracking-widest text-slate-400">Category</th>
                       <th className="p-6 text-[10px] font-bold uppercase tracking-widest text-slate-400">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
-                    {products.map((item) => (
+                    {filteredProducts.map((item) => (
                       <tr key={item.id} className="hover:bg-slate-50/50 transition-colors group">
                         <td className="p-6">
                           <div className="flex items-center gap-4">
@@ -510,12 +530,16 @@ export default function AdminDashboard() {
                             </div>
                             <div>
                               <span className="block font-bold text-slate-900 group-hover:text-emerald-700 transition-colors leading-tight line-clamp-1">{item.title}</span>
-                              <span className="text-[10px] text-slate-400 font-medium">{item.category}</span>
                             </div>
                           </div>
                         </td>
                         <td className="p-6 text-xs font-semibold text-slate-600">{item.author}</td>
                         <td className="p-6 text-sm font-black text-slate-900">${item.price}</td>
+                        <td className="p-6">
+                          <span className="bg-slate-100 text-slate-600 text-[10px] px-2.5 py-1 rounded-lg font-bold uppercase tracking-wider border border-slate-200">
+                            {item.category || 'N/A'}
+                          </span>
+                        </td>
                         <td className="p-6">
                           <div className="flex items-center gap-2">
                             <button onClick={() => handleEdit(item)} className="w-10 h-10 bg-white border border-slate-200 text-slate-400 hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50 transition-all rounded-xl flex items-center justify-center" title="Edit">
@@ -532,7 +556,7 @@ export default function AdminDashboard() {
                 </table>
               </div>
             ) : (
-              <div className="p-20 text-center font-serif italic text-slate-400">Archives are currently dormant. No manuscripts found.</div>
+              <div className="p-20 text-center font-serif italic text-slate-400">No manuscripts found for this category.</div>
             )}
           </div>
         </div>
