@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 
-import { db, auth } from '@/lib/firebase';
+import { db, auth, storage } from '@/lib/firebase';
 import {
   collection,
   addDoc,
@@ -22,6 +22,7 @@ import {
   onAuthStateChanged,
   User
 } from 'firebase/auth';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
 // ---------------------------------------------------------------------------
 // [수정] 저장이 끝나지 않고 "Processing..."에 멈추는 문제를 막기 위한 도우미
@@ -49,6 +50,40 @@ const describeError = (err: any) =>
 // Firestore 문서 한도는 1MiB. base64 이미지 문자열 길이가 대략 저장 용량과 같다.
 const DOC_SIZE_LIMIT_CHARS = 950000;
 
+// 파일을 Storage에 올리고 저장 경로를 돌려준다. 진행률은 콜백으로 전달한다.
+//  - ebooks/  : 전체 전자책 (비공개, 구매 후 서버가 임시 주소를 발급)
+//  - previews/: 샘플 PDF (공개)
+function uploadToStorage(
+  file: File,
+  folder: 'ebooks' | 'previews',
+  onProgress: (pct: number) => void
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (!storage) {
+      reject(new Error('Storage가 초기화되지 않았습니다.'));
+      return;
+    }
+    storage.maxUploadRetryTime = 60000; // 연결 문제 시 60초 뒤 실패 처리
+    const safeName = file.name.replace(/[^\w.\-가-힣]+/g, '_');
+    const path = `${folder}/${Date.now()}-${safeName}`;
+    const lower = file.name.toLowerCase();
+    const contentType =
+      file.type ||
+      (lower.endsWith('.epub')
+        ? 'application/epub+zip'
+        : lower.endsWith('.pdf')
+        ? 'application/pdf'
+        : 'application/octet-stream');
+    const task = uploadBytesResumable(ref(storage, path), file, { contentType });
+    task.on(
+      'state_changed',
+      (snap) => onProgress(Math.round((snap.bytesTransferred / snap.totalBytes) * 100)),
+      (err) => reject(err),
+      () => resolve(path)
+    );
+  });
+}
+
 export default function AdminDashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -75,6 +110,12 @@ export default function AdminDashboard() {
   const [fileUrl, setFileUrl] = useState('');
   const [coverFileName, setCoverFileName] = useState('');
   const [ebookFileName, setEbookFileName] = useState('');
+  const [ebookFile, setEbookFile] = useState<File | null>(null);
+  const [ebookPath, setEbookPath] = useState('');
+  const [previewFile, setPreviewFile] = useState<File | null>(null);
+  const [previewFileName, setPreviewFileName] = useState('');
+  const [previewUrl, setPreviewUrl] = useState('');
+  const [uploadStatus, setUploadStatus] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [filterCategory, setFilterCategory] = useState('All');
 
@@ -258,9 +299,26 @@ export default function AdminDashboard() {
   const handleEbookUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setEbookFile(file);
       setEbookFileName(file.name);
-      // 참고: 아직 실제 파일 업로드는 구현되어 있지 않고, 항상 데모 주소가 저장된다.
-      setFileUrl("https://incarbooks-cdn.com/manuscripts/master-demo.pdf");
+      const lower = file.name.toLowerCase();
+      if (lower.endsWith('.epub')) setFileFormat('EPUB');
+      else if (lower.endsWith('.pdf')) setFileFormat('PDF');
+      e.target.value = ''; // 같은 파일을 다시 선택해도 인식되도록 초기화
+    }
+  };
+
+  const handlePreviewUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.name.toLowerCase().endsWith('.pdf')) {
+        alert('샘플 파일은 PDF만 올릴 수 있습니다.');
+        e.target.value = '';
+        return;
+      }
+      setPreviewFile(file);
+      setPreviewFileName(file.name);
+      e.target.value = '';
     }
   };
 
@@ -283,6 +341,31 @@ export default function AdminDashboard() {
         return;
       }
 
+      // 새 상품은 전자책 파일이 필요하다
+      if (!editingId && !ebookFile) {
+        alert('전자책 파일(PDF 또는 EPUB)을 선택해주세요.');
+        return;
+      }
+
+      // 1) 파일 업로드 (Storage)
+      let finalEbookPath = ebookPath;
+      let finalPreviewUrl = previewUrl;
+      if (ebookFile) {
+        setUploadStatus('E-book 0%');
+        finalEbookPath = await uploadToStorage(ebookFile, 'ebooks', (p) =>
+          setUploadStatus(`E-book ${p}%`)
+        );
+      }
+      if (previewFile) {
+        setUploadStatus('Sample 0%');
+        const previewPath = await uploadToStorage(previewFile, 'previews', (p) =>
+          setUploadStatus(`Sample ${p}%`)
+        );
+        finalPreviewUrl = await getDownloadURL(ref(storage!, previewPath));
+      }
+      setUploadStatus('Saving...');
+
+      // 2) 상품 정보 저장 (Firestore)
       if (editingId) {
         await withTimeout(
           updateDoc(doc(db!, "products", editingId), {
@@ -292,7 +375,8 @@ export default function AdminDashboard() {
             description,
             category,
             coverUrl: coverBase64,
-            fileUrl: fileUrl || "https://incarbooks-cdn.com/manuscripts/master-demo.pdf",
+            ebookPath: finalEbookPath,
+            previewUrl: finalPreviewUrl,
             promoImageUrl: promoImageBase64,
             authorIntro,
             publisher,
@@ -314,7 +398,8 @@ export default function AdminDashboard() {
             description,
             category,
             coverUrl: coverBase64,
-            fileUrl: fileUrl || "https://incarbooks-cdn.com/manuscripts/master-demo.pdf",
+            ebookPath: finalEbookPath,
+            previewUrl: finalPreviewUrl,
             promoImageUrl: promoImageBase64,
             authorIntro,
             publisher,
@@ -344,6 +429,7 @@ export default function AdminDashboard() {
       }
     } finally {
       setUploading(false);
+      setUploadStatus('');
     }
   };
 
@@ -356,8 +442,13 @@ export default function AdminDashboard() {
     setCategory(product.category || 'Literature');
     setCoverBase64(product.coverUrl || '');
     setFileUrl(product.fileUrl || '');
+    setEbookPath(product.ebookPath || '');
+    setEbookFile(null);
+    setPreviewUrl(product.previewUrl || '');
+    setPreviewFile(null);
+    setPreviewFileName(product.previewUrl ? 'Existing Sample Retained' : '');
     setCoverFileName(product.coverUrl ? 'Existing Cover Retained' : '');
-    setEbookFileName(product.fileUrl ? 'Existing E-book Retained' : '');
+    setEbookFileName(product.ebookPath ? 'Existing E-book Retained' : '');
 
     setPromoImageBase64(product.promoImageUrl || '');
     setPromoFileName(product.promoImageUrl ? 'Existing Promo Retained' : '');
@@ -380,6 +471,11 @@ export default function AdminDashboard() {
     setFileUrl('');
     setCoverFileName('');
     setEbookFileName('');
+    setEbookFile(null);
+    setEbookPath('');
+    setPreviewFile(null);
+    setPreviewFileName('');
+    setPreviewUrl('');
     setPromoImageBase64('');
     setPromoFileName('');
     setAuthorIntro('');
@@ -559,6 +655,16 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
+                {/* Sample PDF (public preview) */}
+                <div>
+                  <input type="file" accept=".pdf" onChange={handlePreviewUpload} id="preview-form" className="hidden" />
+                  <label htmlFor="preview-form" className={`w-full py-4 flex flex-col items-center justify-center cursor-pointer transition-all rounded-xl border-2 border-dashed ${previewFileName ? 'bg-emerald-600 border-emerald-600 hover:bg-emerald-700' : 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100'}`}>
+                    <span className="text-xl">👀</span>
+                    <span className={`text-[10px] font-bold uppercase tracking-widest mt-1 ${previewFileName ? 'text-emerald-50' : 'text-emerald-700'}`}>{previewFileName ? 'Sample PDF Selected' : 'Sample PDF (Preview)'}</span>
+                    {previewFileName && <span className="text-[8px] text-emerald-100 mt-1 truncate w-[80%] text-center" title={previewFileName}>{previewFileName}</span>}
+                  </label>
+                </div>
+
                 {/* Additional Details Section */}
                 <div className="pt-4 border-t border-slate-100 space-y-4">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-slate-800">Extended Metadata</h3>
@@ -612,7 +718,7 @@ export default function AdminDashboard() {
               </div>
 
               <button disabled={uploading} className="w-full bg-emerald-700 text-white py-4 rounded-xl font-bold hover:bg-emerald-800 transition-all shadow-lg shadow-emerald-700/20 active:scale-[0.98] disabled:opacity-50">
-                {uploading ? 'Processing...' : (editingId ? 'Update Manuscript' : 'Publish to Collection')}
+                {uploading ? (uploadStatus || 'Processing...') : (editingId ? 'Update Manuscript' : 'Publish to Collection')}
               </button>
             </form>
           </div>
